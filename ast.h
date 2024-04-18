@@ -1,6 +1,9 @@
 #ifndef AST_H
 #define AST_H
 
+#include <stdlib.h>
+#include <string.h>
+
 struct ast_node;
 typedef enum ast_node_type_e {
   NUMBER,
