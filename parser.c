@@ -23,6 +23,8 @@ ast_node *parse_number_expr() {
   return result;
 }
 
+ast_node *parse_expression() { return NULL; }
+
 ast_node *parse_paren_expr() {
   get_next_token();
   ast_node *V = parse_expression();
@@ -45,12 +47,17 @@ ast_node *parse_identifier_expr() {
   }
 
   get_next_token();
+
   char **args = malloc(sizeof(char *));
+  if (args == NULL)
+    return NULL;
   unsigned int arg_count;
   if (current_token.this_char != ')') {
     while (1) {
-      if (ast_node *arg = parse_expression()) {
-        args[arg_count] = arg;
+      ast_node *arg = parse_expression();
+      if (arg) {
+        // TODO: Change later
+        args[arg_count] = arg->call.call;
       } else {
         return NULL;
       }
@@ -70,7 +77,13 @@ ast_node *parse_identifier_expr() {
 
   get_next_token();
 
-  return call_expr_ast_create(id_name, args, arg_count);
+  char *act_args[arg_count];
+  memcpy(act_args, args, arg_count);
+
+  free(args);
+  args = NULL;
+
+  return call_expr_ast_create(id_name, act_args, arg_count);
 }
 
 ast_node *parse_primary() {
