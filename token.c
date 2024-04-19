@@ -3,7 +3,7 @@
 static char *IdentifierStr;
 static double NumVal;
 
-static int getToken() {
+int get_token() {
   static char LastChar = ' ';
   while (isspace(LastChar))
     LastChar = getchar();
@@ -40,7 +40,7 @@ static int getToken() {
       LastChar = getchar();
     } while (LastChar != EOF && LastChar != '\n' && LastChar != '\r');
     if (LastChar != EOF) {
-      return getToken();
+      return get_token();
     }
   }
 

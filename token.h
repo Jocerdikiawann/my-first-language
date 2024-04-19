@@ -14,5 +14,5 @@ enum Token {
   token_number = -5,
 };
 
-static int getToken();
+int get_token();
 #endif // !TOKEN_H
