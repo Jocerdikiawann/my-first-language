@@ -14,5 +14,10 @@ enum Token {
   token_number = -5,
 };
 
-int get_token();
+typedef struct {
+  int num_val, this_char;
+  char *identifier_str;
+} TokenData;
+
+TokenData get_token();
 #endif // !TOKEN_H

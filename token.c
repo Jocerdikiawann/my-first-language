@@ -1,28 +1,31 @@
 #include "token.h"
 
-static char *IdentifierStr;
-static double NumVal;
+TokenData get_token() {
+  TokenData data = {};
 
-int get_token() {
   static char LastChar = ' ';
   while (isspace(LastChar))
     LastChar = getchar();
 
   if (isalpha(LastChar)) {
-    IdentifierStr[0] = LastChar;
+    data.identifier_str[0] = LastChar;
     while (isalnum((LastChar = getchar()))) {
-      IdentifierStr += LastChar;
+      data.identifier_str += LastChar;
     }
 
-    if (strcmp(IdentifierStr, "fn") == 0) {
-      return token_def;
+    if (strcmp(data.identifier_str, "fn") == 0) {
+      data.this_char = token_def;
+      return data;
     }
 
-    if (strcmp(IdentifierStr, "extern") == 0) {
-      return token_extern;
+    if (strcmp(data.identifier_str, "extern") == 0) {
+      data.this_char = token_extern;
+      return data;
     }
 
-    return token_identifier;
+    data.this_char = token_identifier;
+
+    return data;
   }
 
   if (isdigit(LastChar) || LastChar == '.') {
@@ -31,8 +34,9 @@ int get_token() {
       NumStr += LastChar;
       LastChar = getchar();
     } while (isdigit(LastChar) || strcmp(&LastChar, "."));
-    NumVal = strtod(NumStr, 0);
-    return token_number;
+    data.num_val = strtod(NumStr, 0);
+    data.this_char = token_number;
+    return data;
   }
 
   if (strcmp(&LastChar, "//") == 0) {
@@ -45,10 +49,12 @@ int get_token() {
   }
 
   if (LastChar == EOF) {
-    return token_eof;
+    data.this_char = token_eof;
+    return data;
   }
 
   int ThisChar = LastChar;
   LastChar = getchar();
-  return ThisChar;
+  data.this_char = ThisChar;
+  return data;
 }
