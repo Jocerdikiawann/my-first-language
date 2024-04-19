@@ -69,6 +69,6 @@ ast_node *binary_expr_ast_create(binary_operations_expression operations,
 ast_node *call_expr_ast_create(char *call, char **args, int arg_count);
 ast_node *prototype_ast_create(char *name, char **args, int arg_count);
 ast_node *function_ast_create(ast_node *prototype, ast_node *body);
-void node_ast_free(struct ast_node *node);
+void node_ast_free(ast_node *node);
 
 #endif // !AST_H
