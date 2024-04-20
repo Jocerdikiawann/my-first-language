@@ -53,7 +53,6 @@ ast_node *parse_identifier_expr() {
     while (1) {
       ast_node *arg = parse_expression();
       if (arg) {
-        // TODO: Change later
         args[arg_count] = arg;
       } else {
         return NULL;
@@ -88,6 +87,19 @@ ast_node *parse_binary_operations_rhs(int expr_prec, ast_node *lhs) {
     int token_prec = get_token_precedence();
     if (token_prec < expr_prec)
       return lhs;
+    int binary_operations = current_token.this_char;
+    get_next_token();
+    ast_node *rhs = parse_primary();
+    if (!rhs)
+      return NULL;
+
+    int next_prec = get_token_precedence();
+    if (token_prec < next_prec) {
+      rhs = parse_binary_operations_rhs(token_prec + 1, rhs);
+      if (!rhs)
+        return NULL;
+    }
+    lhs = binary_expr_ast_create(binary_operations, lhs, rhs);
   }
 }
 
