@@ -14,7 +14,7 @@ static ast_node *get_result() {
   return binary_expr_ast_create(ADD, get_lhs(), get_rhs());
 }
 
-static int get_next_token() {
+int get_next_token() {
   current_token = get_token();
   return current_token.this_char;
 }
@@ -80,6 +80,89 @@ ast_node *parse_identifier_expr() {
   args = NULL;
 
   return call_expr_ast_create(id_name, act_args, arg_count);
+}
+
+ast_node *parse_prototype() {
+  if (current_token.this_char != token_identifier) {
+    log_error("expected function name in prototype");
+    return NULL;
+  }
+
+  char *fn_name = current_token.identifier_str;
+  get_next_token();
+
+  if (current_token.this_char != '(') {
+    log_error("expected '(' in prototype");
+    return NULL;
+  }
+
+  char **args = malloc(sizeof(char *));
+  if (args == NULL)
+    return NULL;
+
+  int arg_count = 0;
+  while (get_next_token() == token_identifier) {
+    args[arg_count] = current_token.identifier_str;
+    arg_count++;
+  }
+
+  if (current_token.this_char != ')') {
+    log_error("expected ')' in prototype");
+    return NULL;
+  }
+
+  get_next_token();
+
+  return prototype_ast_create(fn_name, args, arg_count);
+}
+
+ast_node *parse_definition() {
+  get_next_token();
+  ast_node *proto = parse_prototype();
+  if (!proto)
+    return NULL;
+
+  ast_node *expr = parse_expression();
+  if (!expr)
+    return NULL;
+
+  return function_ast_create(proto, expr);
+}
+
+ast_node *parse_extern() {
+  get_next_token();
+  return parse_prototype();
+}
+
+ast_node *parse_top_level_expr() {
+  ast_node *expr = parse_expression();
+  if (!expr)
+    return NULL;
+
+  ast_node *proto = prototype_ast_create("", NULL, 0);
+  return function_ast_create(proto, expr);
+}
+
+void main_loop() {
+  while (1) {
+    fprintf(stderr, "ready> ");
+    switch (current_token.this_char) {
+    case token_eof:
+      return;
+    case ';':
+      get_next_token();
+      break;
+    case token_def:
+      parse_definition();
+      break;
+    case token_extern:
+      parse_extern();
+      break;
+    default:
+      parse_top_level_expr();
+      break;
+    }
+  }
 }
 
 ast_node *parse_binary_operations_rhs(int expr_prec, ast_node *lhs) {
