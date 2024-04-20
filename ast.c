@@ -24,12 +24,12 @@ ast_node *binary_expr_ast_create(binary_operations_expression operations,
   return node;
 }
 
-ast_node *call_expr_ast_create(char *call, char **args, int arg_count) {
+ast_node *call_expr_ast_create(char *call, ast_node **args, int arg_count) {
   ast_node *node = malloc(sizeof(ast_node));
   node->type = CALL;
   node->call.call = strdup(call);
   node->call.args = malloc(sizeof(ast_node) * arg_count);
-  memcpy(node->prototype.args, args, arg_count);
+  memcpy(node->prototype.args, args, arg_count * sizeof(char *));
   node->call.arg_count = arg_count;
   return node;
 }
