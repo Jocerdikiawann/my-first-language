@@ -1,12 +1,19 @@
 #include "parser.h"
 #include "ast.h"
+#include <stdio.h>
 
 static TokenData current_token;
 static BinopPrecedence binop_precedence[] = {{'<', 10}, {'>', 10}, {'+', 20},
                                              {'-', 20}, {'*', 40}, {'/', 40}};
 
-void log_error(const char *value) { fprintf(stderr, "Error: %s\n", value); }
-void log_errorp(const char *value) { log_error(value); }
+ast_node *log_error(const char *value) {
+  fprintf(stderr, "Error: %s\n", value);
+  return NULL;
+}
+ast_node *log_errorp(const char *value) {
+  log_error(value);
+  return NULL;
+}
 
 static ast_node *get_lhs() { return variable_expr_ast_create("x"); }
 static ast_node *get_rhs() { return variable_expr_ast_create("y"); }
@@ -44,7 +51,7 @@ ast_node *parse_identifier_expr() {
 
   get_next_token();
 
-  ast_node **args = malloc(sizeof(ast_node));
+  ast_node **args = malloc(sizeof(ast_node *));
 
   if (args == NULL)
     return NULL;
@@ -63,8 +70,7 @@ ast_node *parse_identifier_expr() {
       }
 
       if (current_token.this_char != ',') {
-        log_error("expected ')' or ',' in argument list");
-        return NULL;
+        return log_error("expected ')' or ',' in argument list");
       }
       get_next_token();
       arg_count++;
@@ -73,32 +79,24 @@ ast_node *parse_identifier_expr() {
 
   get_next_token();
 
-  ast_node *act_args[arg_count];
-  memcpy(act_args, args, arg_count * sizeof(ast_node *));
-
-  free(args);
-  args = NULL;
-
-  return call_expr_ast_create(id_name, act_args, arg_count);
+  return call_expr_ast_create(id_name, args, arg_count);
 }
 
 ast_node *parse_prototype() {
   if (current_token.this_char != token_identifier) {
-    log_error("expected function name in prototype");
-    return NULL;
+    return log_error("expected function name in prototype");
   }
 
   char *fn_name = current_token.identifier_str;
   get_next_token();
 
   if (current_token.this_char != '(') {
-    log_error("expected '(' in prototype");
-    return NULL;
+    return log_error("expected '(' in prototype");
   }
 
   char **args = malloc(sizeof(char *));
   if (args == NULL)
-    return NULL;
+    return log_error("failed allocate memory for argument");
 
   int arg_count = 0;
   while (get_next_token() == token_identifier) {
@@ -107,8 +105,7 @@ ast_node *parse_prototype() {
   }
 
   if (current_token.this_char != ')') {
-    log_error("expected ')' in prototype");
-    return NULL;
+    return log_error("expected ')' in prototype");
   }
 
   get_next_token();
@@ -143,6 +140,30 @@ ast_node *parse_top_level_expr() {
   return function_ast_create(proto, expr);
 }
 
+void handle_definition() {
+  if (parse_definition()) {
+    fprintf(stderr, "Parsed a function definition.\n");
+  } else {
+    get_next_token();
+  }
+}
+
+void handle_extern() {
+  if (parse_extern()) {
+    fprintf(stderr, "Parsed in extern.\n");
+  } else {
+    get_next_token();
+  }
+}
+
+void handle_top_level_expression() {
+  if (parse_top_level_expr()) {
+    fprintf(stderr, "Parsed top level expression.\n");
+  } else {
+    get_next_token();
+  }
+}
+
 void main_loop() {
   while (1) {
     fprintf(stderr, "ready> ");
@@ -153,13 +174,13 @@ void main_loop() {
       get_next_token();
       break;
     case token_def:
-      parse_definition();
+      handle_definition();
       break;
     case token_extern:
-      parse_extern();
+      handle_extern();
       break;
     default:
-      parse_top_level_expr();
+      handle_top_level_expression();
       break;
     }
   }
@@ -190,11 +211,9 @@ ast_node *parse_primary() {
   switch (current_token.this_char) {
 
   default:
-    log_error("unknown token when expecting an expression");
-    return NULL;
+    return log_error("unknown token when expecting an expression");
   case token_identifier:
     return parse_identifier_expr();
-
   case token_number:
     return parse_number_expr();
   case '(':
@@ -218,8 +237,7 @@ ast_node *parse_paren_expr() {
     return NULL;
   }
   if (current_token.this_char != ')') {
-    log_error("expected ')'");
-    return NULL;
+    return log_error("expected ')'");
   }
   get_next_token();
   return V;

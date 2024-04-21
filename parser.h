@@ -21,6 +21,9 @@ ast_node *parse_prototype();
 ast_node *parse_definition();
 ast_node *parse_extern();
 ast_node *parse_top_level_expr();
+void handle_definition();
+void handle_extern();
+void handle_top_level_expression();
 void main_loop();
 
 #endif // !PARSER_H

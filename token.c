@@ -9,9 +9,11 @@ TokenData get_token() {
 
   if (isalpha(last_char)) {
     data.identifier_str[0] = last_char;
+    int i = 1;
     while (isalnum((last_char = getchar()))) {
-      data.identifier_str += last_char;
+      data.identifier_str[i++] = last_char;
     }
+    data.identifier_str[i] = '\0';
 
     if (strcmp(data.identifier_str, "fn") == 0) {
       data.this_char = token_def;
