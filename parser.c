@@ -10,10 +10,6 @@ ast_node *log_error(const char *value) {
   fprintf(stderr, "Error: %s\n", value);
   return NULL;
 }
-ast_node *log_errorp(const char *value) {
-  log_error(value);
-  return NULL;
-}
 
 static ast_node *get_lhs() { return variable_expr_ast_create("x"); }
 static ast_node *get_rhs() { return variable_expr_ast_create("y"); }
@@ -21,16 +17,16 @@ static ast_node *get_result() {
   return binary_expr_ast_create(ADD, get_lhs(), get_rhs());
 }
 
-int get_next_token() {
+void get_next_token() {
   current_token = get_token();
-  return current_token.this_char;
+  return;
 }
 
 int get_token_precedence() {
-  if (!isascii(current_token.this_char))
+  if (!isascii(current_token.last_char))
     return -1;
 
-  int token_prec = binop_precedence[current_token.this_char].value;
+  int token_prec = binop_precedence[current_token.last_char].value;
   if (token_prec <= 0)
     return -1;
   return token_prec;
@@ -45,7 +41,7 @@ ast_node *parse_number_expr() {
 ast_node *parse_identifier_expr() {
   char *id_name = current_token.identifier_str;
   get_next_token();
-  if (current_token.this_char != '(') {
+  if (current_token.last_char != '(') {
     return variable_expr_ast_create(id_name);
   }
 
@@ -56,7 +52,7 @@ ast_node *parse_identifier_expr() {
   if (args == NULL)
     return NULL;
   int arg_count = 0;
-  if (current_token.this_char != ')') {
+  if (current_token.last_char != ')') {
     while (1) {
       ast_node *arg = parse_expression();
       if (arg) {
@@ -65,11 +61,11 @@ ast_node *parse_identifier_expr() {
         return NULL;
       }
 
-      if (current_token.this_char == ')') {
+      if (current_token.last_char == ')') {
         break;
       }
 
-      if (current_token.this_char != ',') {
+      if (current_token.last_char != ',') {
         return log_error("expected ')' or ',' in argument list");
       }
       get_next_token();
@@ -83,14 +79,14 @@ ast_node *parse_identifier_expr() {
 }
 
 ast_node *parse_prototype() {
-  if (current_token.this_char != token_identifier) {
+  if (current_token.last_char != token_identifier) {
     return log_error("expected function name in prototype");
   }
 
   char *fn_name = current_token.identifier_str;
   get_next_token();
-
-  if (current_token.this_char != '(') {
+  // TODO: fix the error here
+  if (current_token.last_char != '(') {
     return log_error("expected '(' in prototype");
   }
 
@@ -99,12 +95,12 @@ ast_node *parse_prototype() {
     return log_error("failed allocate memory for argument");
 
   int arg_count = 0;
-  while (get_next_token() == token_identifier) {
+  while (current_token.last_char == token_identifier) {
     args[arg_count] = current_token.identifier_str;
     arg_count++;
   }
 
-  if (current_token.this_char != ')') {
+  if (current_token.last_char != ')') {
     return log_error("expected ')' in prototype");
   }
 
@@ -167,7 +163,7 @@ void handle_top_level_expression() {
 void main_loop() {
   while (1) {
     fprintf(stderr, "ready> ");
-    switch (current_token.this_char) {
+    switch (current_token.last_char) {
     case token_eof:
       return;
     case ';':
@@ -191,7 +187,7 @@ ast_node *parse_binary_operations_rhs(int expr_prec, ast_node *lhs) {
     int token_prec = get_token_precedence();
     if (token_prec < expr_prec)
       return lhs;
-    int binary_operations = current_token.this_char;
+    int binary_operations = current_token.last_char;
     get_next_token();
     ast_node *rhs = parse_primary();
     if (!rhs)
@@ -208,7 +204,7 @@ ast_node *parse_binary_operations_rhs(int expr_prec, ast_node *lhs) {
 }
 
 ast_node *parse_primary() {
-  switch (current_token.this_char) {
+  switch (current_token.last_char) {
 
   default:
     return log_error("unknown token when expecting an expression");
@@ -236,7 +232,7 @@ ast_node *parse_paren_expr() {
   if (!V) {
     return NULL;
   }
-  if (current_token.this_char != ')') {
+  if (current_token.last_char != ')') {
     return log_error("expected ')'");
   }
   get_next_token();

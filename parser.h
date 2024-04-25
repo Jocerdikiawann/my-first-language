@@ -9,7 +9,7 @@ typedef struct {
   int value;
 } BinopPrecedence;
 
-int get_next_token();
+void get_next_token();
 ast_node *parse_number_expr();
 ast_node *parse_identifier_expr();
 ast_node *parse_paren_expr();

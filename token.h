@@ -15,7 +15,7 @@ enum Token {
 };
 
 typedef struct {
-  int num_val, this_char;
+  int num_val, last_char;
   char *identifier_str;
 } TokenData;
 
