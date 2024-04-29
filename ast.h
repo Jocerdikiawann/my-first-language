@@ -1,6 +1,6 @@
 #ifndef AST_H
 #define AST_H
-
+#include "util.h"
 #include <stdlib.h>
 #include <string.h>
 
@@ -41,9 +41,13 @@ typedef struct {
 } call_expr_ast;
 
 typedef struct {
+  char **items;
+  size_t count, capacity;
+} arguments;
+
+typedef struct {
+  arguments args;
   char *name;
-  char **args;
-  unsigned int arg_count;
 } prototype_ast;
 
 typedef struct {

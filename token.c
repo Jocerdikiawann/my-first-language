@@ -1,67 +1,58 @@
 #include "token.h"
 
-TokenData get_token() {
-  TokenData data = {
-      .last_char = ' ',
-  };
+int get_token(TokenData *data) {
+  static int last_char = ' ';
 
-  while (isspace(data.last_char))
-    data.last_char = getchar();
+  while (isspace(last_char))
+    last_char = getchar();
 
-  if (isalpha(data.last_char)) {
-    data.identifier_str = malloc(sizeof(char) * 256);
-    data.identifier_str[0] = data.last_char;
-    data.identifier_str[1] = '\0';
+  if (isalpha(last_char)) {
 
-    int i = 2;
+    append(data->identifier_str, last_char);
+    append(data->identifier_str, '\0');
 
-    while (isalnum((data.last_char = getchar()))) {
-      data.identifier_str[i++] = data.last_char;
+    while (isalnum((last_char = getchar()))) {
+      append(data->identifier_str, last_char);
+      append(data->identifier_str, '\0');
     }
 
-    data.identifier_str[i] = '\0';
-
-    if (strcmp(data.identifier_str, "fn") == 0) {
-      data.last_char = token_def;
-      return data;
+    if (strcmp(data->identifier_str.items, "fn") == 0) {
+      return token_def;
     }
 
-    if (strcmp(data.identifier_str, "extern") == 0) {
-      data.last_char = token_extern;
-      return data;
+    if (strcmp(data->identifier_str.items, "extern") == 0) {
+      return token_extern;
     }
 
-    data.last_char = token_identifier;
-
-    return data;
+    return token_identifier;
   }
 
-  if (isdigit(data.last_char) || data.last_char == '.') {
+  if (isdigit(last_char) || last_char == '.') {
     char *NumStr;
+    int i = 0;
     do {
-      NumStr += data.last_char;
-      data.last_char = getchar();
-    } while (isdigit(data.last_char) || data.last_char == '.');
-    data.num_val = strtod(NumStr, 0);
-    data.last_char = token_number;
-    return data;
+      NumStr[i++] = last_char;
+      last_char = getchar();
+    } while (isdigit(last_char) || last_char == '.');
+
+    data->num_val = strtod(NumStr, 0);
+    return token_number;
   }
 
-  if (data.last_char == '#') {
+  if (last_char == '#') {
     do {
-      data.last_char = getchar();
-    } while (data.last_char != EOF && data.last_char != '\n' &&
-             data.last_char != '\r');
-    if (data.last_char != EOF) {
-      return get_token();
+      last_char = getchar();
+    } while (last_char != EOF && last_char != '\n' && last_char != '\r');
+    if (last_char != EOF) {
+      return get_token(data);
     }
   }
 
-  if (data.last_char == EOF) {
-    data.last_char = token_eof;
-    return data;
+  if (last_char == EOF) {
+    return token_eof;
   }
 
-  data.last_char = getchar();
-  return data;
+  int this_char = last_char;
+  last_char = getchar();
+  return this_char;
 }

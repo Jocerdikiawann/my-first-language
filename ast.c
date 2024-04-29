@@ -1,4 +1,5 @@
 #include "ast.h"
+#include "util.h"
 
 ast_node *number_expr_ast_create(double value) {
   ast_node *node = malloc(sizeof(ast_node));
@@ -29,7 +30,7 @@ ast_node *call_expr_ast_create(char *call, ast_node **args, int arg_count) {
   node->type = CALL;
   node->call.call = strdup(call);
   node->call.args = malloc(sizeof(ast_node) * arg_count);
-  memcpy(node->prototype.args, args, arg_count * sizeof(char *));
+  memcpy(node->prototype.args.items, args, arg_count * sizeof(char *));
   node->call.arg_count = arg_count;
   return node;
 }
@@ -40,11 +41,9 @@ ast_node *prototype_ast_create(char *name, char **args, int arg_count) {
   node->type = PROTOTYPE;
   node->prototype.name = strdup(name);
 
-  node->prototype.args = malloc(sizeof(char *) * arg_count);
-  for (i = 0; i < arg_count; ++i) {
-    node->prototype.args[i] = strdup(args[i]);
-  }
-  node->prototype.arg_count = arg_count;
+  for (i = 0; i < arg_count; ++i)
+    append(node->prototype.args, args[i]);
+  node->prototype.args.count = arg_count;
   return node;
 }
 
@@ -84,10 +83,14 @@ void node_ast_free(ast_node *node) {
   case PROTOTYPE:
     if (node->prototype.name)
       free(node->prototype.name);
-    for (i = 0; i < node->prototype.arg_count; ++i) {
-      free(node->prototype.args[i]);
+    for (i = 0; i < node->prototype.args.count; ++i) {
+      free(node->prototype.args.items[i]);
+      node->prototype.args.items[i] = NULL;
+      node->prototype.args.count = 0;
     }
-    free(node->prototype.args);
+    free(node->prototype.args.items);
+    node->prototype.args.items = NULL;
+    node->prototype.args.count = 0;
     break;
   case FUNCTION:
     if (node->function.prototype)

@@ -1,6 +1,7 @@
 #ifndef TOKEN_H
 #define TOKEN_H
 
+#include "util.h"
 #include <ctype.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -15,9 +16,14 @@ enum Token {
 };
 
 typedef struct {
-  int num_val, last_char;
-  char *identifier_str;
+  char *items;
+  size_t count, capacity;
+} IdentifierStr;
+
+typedef struct {
+  int num_val;
+  IdentifierStr identifier_str;
 } TokenData;
 
-TokenData get_token();
+int get_token(TokenData *data);
 #endif // !TOKEN_H

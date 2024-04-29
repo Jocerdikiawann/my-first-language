@@ -1,8 +1,6 @@
 #include "parser.h"
-#include "ast.h"
-#include <stdio.h>
 
-static TokenData current_token;
+static int current_token;
 static BinopPrecedence binop_precedence[] = {{'<', 10}, {'>', 10}, {'+', 20},
                                              {'-', 20}, {'*', 40}, {'/', 40}};
 
@@ -17,31 +15,33 @@ static ast_node *get_result() {
   return binary_expr_ast_create(ADD, get_lhs(), get_rhs());
 }
 
+static TokenData token_data = {};
+
 void get_next_token() {
-  current_token = get_token();
+  current_token = get_token(&token_data);
   return;
 }
 
 int get_token_precedence() {
-  if (!isascii(current_token.last_char))
+  if (!isascii(current_token))
     return -1;
 
-  int token_prec = binop_precedence[current_token.last_char].value;
+  int token_prec = binop_precedence[current_token].value;
   if (token_prec <= 0)
     return -1;
   return token_prec;
 }
 
 ast_node *parse_number_expr() {
-  ast_node *result = number_expr_ast_create(current_token.num_val);
+  ast_node *result = number_expr_ast_create(token_data.num_val);
   get_next_token();
   return result;
 }
 
 ast_node *parse_identifier_expr() {
-  char *id_name = current_token.identifier_str;
+  char *id_name = token_data.identifier_str.items;
   get_next_token();
-  if (current_token.last_char != '(') {
+  if (current_token != '(') {
     return variable_expr_ast_create(id_name);
   }
 
@@ -52,7 +52,7 @@ ast_node *parse_identifier_expr() {
   if (args == NULL)
     return NULL;
   int arg_count = 0;
-  if (current_token.last_char != ')') {
+  if (current_token != ')') {
     while (1) {
       ast_node *arg = parse_expression();
       if (arg) {
@@ -61,11 +61,11 @@ ast_node *parse_identifier_expr() {
         return NULL;
       }
 
-      if (current_token.last_char == ')') {
+      if (current_token == ')') {
         break;
       }
 
-      if (current_token.last_char != ',') {
+      if (current_token != ',') {
         return log_error("expected ')' or ',' in argument list");
       }
       get_next_token();
@@ -79,14 +79,13 @@ ast_node *parse_identifier_expr() {
 }
 
 ast_node *parse_prototype() {
-  if (current_token.last_char != token_identifier) {
+  if (current_token != token_identifier) {
     return log_error("expected function name in prototype");
   }
 
-  char *fn_name = current_token.identifier_str;
+  char *fn_name = token_data.identifier_str.items;
   get_next_token();
-  // TODO: fix the error here
-  if (current_token.last_char != '(') {
+  if (current_token != '(') {
     return log_error("expected '(' in prototype");
   }
 
@@ -95,12 +94,12 @@ ast_node *parse_prototype() {
     return log_error("failed allocate memory for argument");
 
   int arg_count = 0;
-  while (current_token.last_char == token_identifier) {
-    args[arg_count] = current_token.identifier_str;
+  while (current_token == token_identifier) {
+    args[arg_count] = token_data.identifier_str.items;
     arg_count++;
   }
 
-  if (current_token.last_char != ')') {
+  if (current_token != ')') {
     return log_error("expected ')' in prototype");
   }
 
@@ -131,8 +130,8 @@ ast_node *parse_top_level_expr() {
   ast_node *expr = parse_expression();
   if (!expr)
     return NULL;
-
-  ast_node *proto = prototype_ast_create("", NULL, 0);
+  char *args[] = {};
+  ast_node *proto = prototype_ast_create("__anon_expr", args, 0);
   return function_ast_create(proto, expr);
 }
 
@@ -163,7 +162,7 @@ void handle_top_level_expression() {
 void main_loop() {
   while (1) {
     fprintf(stderr, "ready> ");
-    switch (current_token.last_char) {
+    switch (current_token) {
     case token_eof:
       return;
     case ';':
@@ -187,7 +186,7 @@ ast_node *parse_binary_operations_rhs(int expr_prec, ast_node *lhs) {
     int token_prec = get_token_precedence();
     if (token_prec < expr_prec)
       return lhs;
-    int binary_operations = current_token.last_char;
+    int binary_operations = current_token;
     get_next_token();
     ast_node *rhs = parse_primary();
     if (!rhs)
@@ -204,7 +203,7 @@ ast_node *parse_binary_operations_rhs(int expr_prec, ast_node *lhs) {
 }
 
 ast_node *parse_primary() {
-  switch (current_token.last_char) {
+  switch (current_token) {
 
   default:
     return log_error("unknown token when expecting an expression");
@@ -232,7 +231,7 @@ ast_node *parse_paren_expr() {
   if (!V) {
     return NULL;
   }
-  if (current_token.last_char != ')') {
+  if (current_token != ')') {
     return log_error("expected ')'");
   }
   get_next_token();
