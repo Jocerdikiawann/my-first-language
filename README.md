@@ -1,6 +1,6 @@
 # (WIP) Kaleidoscope-Lang
 
-I created my own language just for fun, using LLVM and purely learning from the kaleidoscope documentation on the LLVM site.
+I created my own language just for fun, using LLVM in C and purely learning from the kaleidoscope documentation on the LLVM site.
 
 |Ref | Link |
 | --- | ----------- |
