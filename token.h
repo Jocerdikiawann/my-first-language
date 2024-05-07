@@ -21,6 +21,11 @@ typedef struct {
 } IdentifierStr;
 
 typedef struct {
+  char *items;
+  size_t count, capacity;
+} NumberStr;
+
+typedef struct {
   int num_val;
   IdentifierStr identifier_str;
 } TokenData;

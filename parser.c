@@ -161,7 +161,6 @@ void handle_top_level_expression() {
 
 void main_loop() {
   while (1) {
-    fprintf(stderr, "ready> ");
     switch (current_token) {
     case token_eof:
       return;
