@@ -9,6 +9,16 @@ typedef struct {
   int value;
 } BinopPrecedence;
 
+typedef struct {
+  struct ast_node **items;
+  size_t count, capacity;
+} Arguments;
+
+typedef struct {
+  char **items;
+  size_t count, capacity;
+} ArgumentNames;
+
 void get_next_token();
 ast_node *parse_number_expr();
 ast_node *parse_identifier_expr();

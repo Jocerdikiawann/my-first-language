@@ -40,7 +40,6 @@ ast_node *prototype_ast_create(char *name, char **args, int arg_count) {
   ast_node *node = malloc(sizeof(ast_node));
   node->type = PROTOTYPE;
   node->prototype.name = strdup(name);
-
   for (i = 0; i < arg_count; ++i)
     append(node->prototype.args, args[i]);
   node->prototype.args.count = arg_count;

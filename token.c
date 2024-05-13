@@ -3,38 +3,35 @@
 int get_token(TokenData *data) {
   static int last_char = ' ';
 
-  while (isspace(last_char) == 1)
+  while (isspace(last_char))
     last_char = getchar();
 
   if (isalpha(last_char)) {
 
     append(data->identifier_str, last_char);
-    append(data->identifier_str, '\0');
 
-    while (isalnum((last_char = getchar())) == 1) {
+    while (isalnum((last_char = getchar()))) {
       append(data->identifier_str, last_char);
-      append(data->identifier_str, '\0');
     }
 
-    if (strcmp(data->identifier_str.items, "fn") == 1) {
+    if (strcmp(data->identifier_str.items, "fn")) {
       return token_def;
     }
 
-    if (strcmp(data->identifier_str.items, "extern") == 1) {
+    if (strcmp(data->identifier_str.items, "extern")) {
       return token_extern;
     }
 
     return token_identifier;
   }
 
-  if (isdigit(last_char) == 1 || last_char == '.') {
-    NumberStr num_str;
-    int i = 0;
+  if (isdigit(last_char) || last_char == '.') {
+    NumberStr num_str = {};
+
     do {
       append(num_str, last_char);
-      append(num_str, '\0');
       last_char = getchar();
-    } while (isdigit(last_char) == 1 || last_char == '.');
+    } while (isdigit(last_char) == true || last_char == '.');
 
     data->num_val = strtod(num_str.items, NULL);
     return token_number;

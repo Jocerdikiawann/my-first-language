@@ -47,19 +47,15 @@ ast_node *parse_identifier_expr() {
 
   get_next_token();
 
-  ast_node **args = malloc(sizeof(ast_node *));
+  Arguments args = {};
 
-  if (args == NULL)
-    return NULL;
-  int arg_count = 0;
   if (current_token != ')') {
-    while (1) {
+    while (true) {
       ast_node *arg = parse_expression();
-      if (arg) {
-        args[arg_count] = arg;
-      } else {
+      if (arg != NULL)
+        append_argument(args, arg);
+      else
         return NULL;
-      }
 
       if (current_token == ')') {
         break;
@@ -69,13 +65,12 @@ ast_node *parse_identifier_expr() {
         return log_error("expected ')' or ',' in argument list");
       }
       get_next_token();
-      arg_count++;
     }
   }
 
   get_next_token();
 
-  return call_expr_ast_create(id_name, args, arg_count);
+  return call_expr_ast_create(id_name, args.items, args.count);
 }
 
 ast_node *parse_prototype() {
@@ -89,14 +84,10 @@ ast_node *parse_prototype() {
     return log_error("expected '(' in prototype");
   }
 
-  char **args = malloc(sizeof(char *));
-  if (args == NULL)
-    return log_error("failed allocate memory for argument");
+  ArgumentNames args = {};
 
-  int arg_count = 0;
   while (current_token == token_identifier) {
-    args[arg_count] = token_data.identifier_str.items;
-    arg_count++;
+    append(args, token_data.identifier_str.items);
   }
 
   if (current_token != ')') {
@@ -105,7 +96,7 @@ ast_node *parse_prototype() {
 
   get_next_token();
 
-  return prototype_ast_create(fn_name, args, arg_count);
+  return prototype_ast_create(fn_name, args.items, args.count);
 }
 
 ast_node *parse_definition() {
@@ -160,7 +151,10 @@ void handle_top_level_expression() {
 }
 
 void main_loop() {
-  while (1) {
+  while (true) {
+    printf("curtok: %d\n", current_token);
+    printf("identifier_str: %s\n", token_data.identifier_str.items);
+    printf("num_val: %d\n", token_data.num_val);
     switch (current_token) {
     case token_eof:
       return;

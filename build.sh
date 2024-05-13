@@ -3,5 +3,5 @@
 
 set -xe
 
-gcc -g *.c -o repl
+gcc -g -O3 *.c -o repl
 ./repl
