@@ -1,1 +1,3 @@
 repl
+*.cpp
+*.out

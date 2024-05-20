@@ -4,75 +4,77 @@
 #include <stdlib.h>
 #include <string.h>
 
-struct ast_node;
-typedef enum ast_node_type_e {
-  NUMBER,
-  VARIABLE,
-  BINARY_EXPR,
-  CALL,
-  PROTOTYPE,
-  FUNCTION,
-} ast_node_type_e;
-
-typedef enum binary_operations_expression {
-  ADD,
-  SUB,
-  MUL,
-  DIV,
-} binary_operations_expression;
-
-typedef struct {
-  double value;
-} number_expr_ast;
-
-typedef struct {
-  char *name;
-} variable_expr_ast;
-
-typedef struct {
-  binary_operations_expression operations;
-  struct ast_node *lhs, *rhs;
-} binary_expr_ast;
-
-typedef struct {
-  char *call;
-  struct ast_node **args;
-  unsigned int arg_count;
-} call_expr_ast;
+typedef struct ExprAST ExprAST;
+// Arguments for dynamic allocation (append)
 
 typedef struct {
   char **items;
   size_t count, capacity;
-} arguments;
+} Arguments;
 
-typedef struct {
-  arguments args;
+typedef struct ExprASTArguments {
+  ExprAST **items;
+  size_t count, capacity;
+} ExprASTArguments;
+
+// End of arguments section
+
+typedef struct NumberExprAST {
+  double value;
+} NumberExprAST;
+
+typedef struct VariableExprAST {
   char *name;
-} prototype_ast;
+} VariableExprAST;
 
-typedef struct {
-  struct ast_node *prototype, *body;
-} function_ast;
+typedef struct BinaryExprAST {
+  char op;
+  ExprAST *lhs, *rhs;
+} BinaryExprAST;
 
-typedef struct ast_node {
-  ast_node_type_e type;
+typedef struct CallExprAST {
+  char *callee;
+  ExprASTArguments args;
+} CallExprAST;
+
+typedef struct PrototypeAST {
+  char *name;
+  Arguments args;
+} PrototypeAST;
+
+typedef struct FunctionAST {
+  PrototypeAST *prototype;
+  ExprAST *body;
+} FunctionAST;
+
+typedef struct ExprAST {
+  void (*destroy)(struct ExprAST *);
   union {
-    number_expr_ast number;
-    variable_expr_ast variable;
-    binary_expr_ast binary_expr;
-    call_expr_ast call;
-    prototype_ast prototype;
-    function_ast function;
+    NumberExprAST number;
+    VariableExprAST variable;
+    BinaryExprAST binary_expr;
+    CallExprAST call;
+    PrototypeAST prototype;
+    FunctionAST function;
   };
-} ast_node;
+} ExprAST;
 
-ast_node *number_expr_ast_create(double value);
-ast_node *variable_expr_ast_create(char *name);
-ast_node *binary_expr_ast_create(binary_operations_expression operations,
-                                 ast_node *lhs, ast_node *rhs);
-ast_node *call_expr_ast_create(char *call, ast_node **args, int arg_count);
-ast_node *prototype_ast_create(char *name, char **args, int arg_count);
-ast_node *function_ast_create(ast_node *prototype, ast_node *body);
-void node_ast_free(ast_node *node);
+ExprAST *number_expr_ast_create(double value);
+ExprAST *variable_expr_ast_create(char *name);
+ExprAST *binary_expr_ast_create(char operations, ExprAST *lhs, ExprAST *rhs);
+ExprAST *call_expr_ast_create(char *call, ExprASTArguments args);
+
+/// PrototypeAST - This class represents the "prototype" for a function,
+/// which captures its name, and its argument names (thus implicitly the number
+/// of arguments the function takes).
+PrototypeAST *prototype_ast_create(char *name, Arguments);
+FunctionAST *function_ast_create(PrototypeAST *prototype, ExprAST *body);
+
+void destroy_NumberExprAST(ExprAST *ast);
+void destroy_VariableExprAST(ExprAST *ast);
+void destroy_BinaryExprAST(ExprAST *ast);
+void destroy_CallExprAST(ExprAST *ast);
+void destroy_PrototypeAST(PrototypeAST *ast);
+void destroy_FunctionAST(FunctionAST *ast);
 
 #endif // !AST_H

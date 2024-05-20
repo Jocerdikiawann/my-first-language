@@ -9,28 +9,19 @@ typedef struct {
   int value;
 } BinopPrecedence;
 
-typedef struct {
-  struct ast_node **items;
-  size_t count, capacity;
-} Arguments;
+int get_next_token();
+ExprAST *parse_number_expr();
+ExprAST *parse_identifier_expr();
+ExprAST *parse_paren_expr();
+ExprAST *parse_primary();
+ExprAST *parse_expression();
+ExprAST *parse_binary_operations_rhs(int expr_prec, ExprAST *lhs);
+ExprAST *parse_call_expr();
 
-typedef struct {
-  char **items;
-  size_t count, capacity;
-} ArgumentNames;
-
-void get_next_token();
-ast_node *parse_number_expr();
-ast_node *parse_identifier_expr();
-ast_node *parse_paren_expr();
-ast_node *parse_primary();
-ast_node *parse_expression();
-ast_node *parse_binary_operations_rhs(int expr_prec, ast_node *lhs);
-ast_node *parse_call_expr();
-ast_node *parse_prototype();
-ast_node *parse_definition();
-ast_node *parse_extern();
-ast_node *parse_top_level_expr();
+PrototypeAST *parse_prototype();
+FunctionAST *parse_definition();
+FunctionAST *parse_top_level_expr();
+PrototypeAST *parse_extern();
 void handle_definition();
 void handle_extern();
 void handle_top_level_expression();

@@ -1,128 +1,139 @@
 #include "parser.h"
+#include "ast.h"
+#include "util.h"
 
 static int current_token;
-static BinopPrecedence binop_precedence[] = {{'<', 10}, {'>', 10}, {'+', 20},
-                                             {'-', 20}, {'*', 40}, {'/', 40}};
+static TokenData token_data = {};
 
-ast_node *log_error(const char *value) {
+static BinopPrecedence binop_precedence[] = {
+    {'<', 10},
+    {'+', 20},
+    {'-', 20},
+    {'*', 40},
+};
+
+int get_next_token() { return current_token = get_token(&token_data); }
+
+ExprAST *log_error(const char *value) {
   fprintf(stderr, "Error: %s\n", value);
   return NULL;
 }
 
-static ast_node *get_lhs() { return variable_expr_ast_create("x"); }
-static ast_node *get_rhs() { return variable_expr_ast_create("y"); }
-static ast_node *get_result() {
-  return binary_expr_ast_create(ADD, get_lhs(), get_rhs());
-}
-
-static TokenData token_data = {};
-
-void get_next_token() {
-  current_token = get_token(&token_data);
-  return;
+PrototypeAST *log_error_p(const char *value) {
+  log_error(value);
+  return NULL;
 }
 
 int get_token_precedence() {
   if (!isascii(current_token))
     return -1;
 
-  int token_prec = binop_precedence[current_token].value;
-  if (token_prec <= 0)
-    return -1;
-  return token_prec;
+  for (size_t i = 0; *(&binop_precedence + 1) - binop_precedence; ++i) {
+    if (binop_precedence[i].key == current_token &&
+        binop_precedence[i].value > 0) {
+      return binop_precedence[i].value;
+    }
+    if (binop_precedence[i].value <= 0) {
+      return -1;
+    }
+  }
+  return -1;
 }
 
-ast_node *parse_number_expr() {
-  ast_node *result = number_expr_ast_create(token_data.num_val);
+ExprAST *parse_number_expr() {
+  ExprAST *result = number_expr_ast_create(token_data.num_val);
   get_next_token();
   return result;
 }
 
-ast_node *parse_identifier_expr() {
-  char *id_name = token_data.identifier_str.items;
+ExprAST *parse_identifier_expr() {
+  char id_name[token_data.identifier_str.count + 1];
+  strcpy(id_name, token_data.identifier_str.items);
+
   get_next_token();
+
   if (current_token != '(') {
     return variable_expr_ast_create(id_name);
   }
 
   get_next_token();
 
-  Arguments args = {};
+  ExprASTArguments args = {};
 
   if (current_token != ')') {
     while (true) {
-      ast_node *arg = parse_expression();
-      if (arg != NULL)
-        append_argument(args, arg);
-      else
+      ExprAST *arg = parse_expression();
+
+      if (arg == NULL)
         return NULL;
 
-      if (current_token == ')') {
-        break;
-      }
+      append_argument(args, arg);
 
-      if (current_token != ',') {
+      if (current_token == ')')
+        break;
+
+      if (current_token != ',')
         return log_error("expected ')' or ',' in argument list");
-      }
+
       get_next_token();
     }
   }
 
   get_next_token();
 
-  return call_expr_ast_create(id_name, args.items, args.count);
+  return call_expr_ast_create(id_name, args);
 }
 
-ast_node *parse_prototype() {
+PrototypeAST *parse_prototype() {
   if (current_token != token_identifier) {
-    return log_error("expected function name in prototype");
+    return log_error_p("expected function name in prototype");
   }
 
   char *fn_name = token_data.identifier_str.items;
   get_next_token();
   if (current_token != '(') {
-    return log_error("expected '(' in prototype");
+    return log_error_p("expected '(' in prototype");
   }
 
-  ArgumentNames args = {};
+  Arguments args = {};
 
-  while (current_token == token_identifier) {
+  while (get_next_token() == token_identifier) {
     append(args, token_data.identifier_str.items);
   }
 
   if (current_token != ')') {
-    return log_error("expected ')' in prototype");
+    return log_error_p("expected ')' in prototype");
   }
 
   get_next_token();
 
-  return prototype_ast_create(fn_name, args.items, args.count);
+  return prototype_ast_create(fn_name, args);
 }
 
-ast_node *parse_definition() {
+FunctionAST *parse_definition() {
   get_next_token();
-  ast_node *proto = parse_prototype();
+  PrototypeAST *proto = parse_prototype();
   if (!proto)
     return NULL;
 
-  ast_node *expr = parse_expression();
-  if (!expr)
+  ExprAST *expr = parse_expression();
+  if (expr == NULL)
     return NULL;
 
   return function_ast_create(proto, expr);
 }
 
-ast_node *parse_extern() {
+PrototypeAST *parse_extern() {
   get_next_token();
   return parse_prototype();
 }
 
-ast_node *parse_top_level_expr() {
-  ast_node *expr = parse_expression();
+FunctionAST *parse_top_level_expr() {
+  ExprAST *expr = parse_expression();
   if (!expr)
     return NULL;
-  char *args[] = {};
-  ast_node *proto = prototype_ast_create("__anon_expr", args, 0);
+  Arguments args = {};
+  PrototypeAST *proto = prototype_ast_create("__anon_expr", args);
   return function_ast_create(proto, expr);
 }
 
@@ -150,11 +161,67 @@ void handle_top_level_expression() {
   }
 }
 
-void main_loop() {
+ExprAST *parse_binary_operations_rhs(int expr_prec, ExprAST *lhs) {
   while (true) {
-    printf("curtok: %d\n", current_token);
-    printf("identifier_str: %s\n", token_data.identifier_str.items);
-    printf("num_val: %d\n", token_data.num_val);
+    int token_prec = get_token_precedence();
+    if (token_prec < expr_prec)
+      return lhs;
+    int binary_operations = current_token;
+    get_next_token();
+    ExprAST *rhs = parse_primary();
+    if (!rhs)
+      return NULL;
+
+    int next_prec = get_token_precedence();
+    if (token_prec < next_prec) {
+      rhs = parse_binary_operations_rhs(token_prec + 1, rhs);
+      if (!rhs)
+        return NULL;
+    }
+    lhs = binary_expr_ast_create(binary_operations, lhs, rhs);
+  }
+}
+
+ExprAST *parse_primary() {
+  switch (current_token) {
+
+  default:
+    return log_error("unknown token when expecting an expression");
+  case token_identifier:
+    return parse_identifier_expr();
+  case token_number:
+    return parse_number_expr();
+  case '(':
+    return parse_paren_expr();
+  }
+}
+
+ExprAST *parse_expression() {
+  ExprAST *lhs = parse_primary();
+  if (!lhs) {
+    return NULL;
+  }
+
+  return parse_binary_operations_rhs(0, lhs);
+}
+
+ExprAST *parse_paren_expr() {
+  get_next_token();
+  ExprAST *V = parse_expression();
+  if (!V) {
+    return NULL;
+  }
+  if (current_token != ')') {
+    return log_error("expected ')'");
+  }
+  get_next_token();
+  return V;
+}
+
+void main_loop() {
+
+  while (true) {
+    fprintf(stderr, "repl> ");
     switch (current_token) {
     case token_eof:
       return;
@@ -172,61 +239,4 @@ void main_loop() {
       break;
     }
   }
-}
-
-ast_node *parse_binary_operations_rhs(int expr_prec, ast_node *lhs) {
-  while (1) {
-    int token_prec = get_token_precedence();
-    if (token_prec < expr_prec)
-      return lhs;
-    int binary_operations = current_token;
-    get_next_token();
-    ast_node *rhs = parse_primary();
-    if (!rhs)
-      return NULL;
-
-    int next_prec = get_token_precedence();
-    if (token_prec < next_prec) {
-      rhs = parse_binary_operations_rhs(token_prec + 1, rhs);
-      if (!rhs)
-        return NULL;
-    }
-    lhs = binary_expr_ast_create(binary_operations, lhs, rhs);
-  }
-}
-
-ast_node *parse_primary() {
-  switch (current_token) {
-
-  default:
-    return log_error("unknown token when expecting an expression");
-  case token_identifier:
-    return parse_identifier_expr();
-  case token_number:
-    return parse_number_expr();
-  case '(':
-    return parse_paren_expr();
-  }
-}
-
-ast_node *parse_expression() {
-  ast_node *lhs = parse_primary();
-  if (!lhs) {
-    return NULL;
-  }
-
-  return parse_binary_operations_rhs(0, lhs);
-}
-
-ast_node *parse_paren_expr() {
-  get_next_token();
-  ast_node *V = parse_expression();
-  if (!V) {
-    return NULL;
-  }
-  if (current_token != ')') {
-    return log_error("expected ')'");
-  }
-  get_next_token();
-  return V;
 }
